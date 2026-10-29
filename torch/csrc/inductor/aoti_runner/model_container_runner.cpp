@@ -151,7 +151,15 @@ void AOTIModelContainerRunner::load_aoti_symbols(
     const std::string& model_so_path,
     const std::string& device_str,
     bool run_single_threaded) {
-  model_so_ = std::make_unique<at::DynamicLibrary>(model_so_path.c_str());
+  bool leak_handle = false;
+#ifdef _WIN32
+  // OpenMP workers may still execute model code after a CPU runner is destroyed.
+  // Keep the DLL loaded for the process lifetime, at the cost of retaining its
+  // mappings and preventing deletion of the DLL file until process exit.
+  leak_handle = device_str == "cpu";
+#endif
+  model_so_ = std::make_unique<at::DynamicLibrary>(
+      model_so_path.c_str(), nullptr, leak_handle);
   TORCH_CHECK(model_so_, "Failed to load model: ", model_so_path);
 
 #define LOAD_SYMBOL(var, name_str) \
