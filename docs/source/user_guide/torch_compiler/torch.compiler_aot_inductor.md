@@ -98,13 +98,15 @@ print(model(torch.randn(8, 10, device=device)))
 The input at inference time should have the same size, dtype, and stride as the input at export time.
 
 ```{note}
-On Windows, the AOTInductor CPU runner keeps model DLLs loaded until the process exits.
-This prevents unloading model code while OpenMP workers may still be using it.
-Destroying a runner still releases its model container and owned tensors, but the DLL's
-mapped code and static data remain resident, and its file cannot be deleted until process exit.
-Package extraction directories containing these DLLs may require cleanup after process exit.
-This also applies to CPU models without OpenMP kernels; loading many distinct model DLLs
-therefore increases process-lifetime resource use. Other devices and platforms are unchanged.
+On Windows, models compiled with MSVC's default OpenMP runtime keep that runtime
+loaded until the process exits, so its workers remain safe after a runner is destroyed.
+The model DLL itself is not retained: after the last runner using it is destroyed,
+it can unload and its file can be deleted. The OpenMP runtime and its resources remain
+process-lifetime resources; this does not guarantee cleanup of package extraction directories.
+This fix is compiled into the model, so existing AOTInductor packages must be recompiled.
+This retention policy is limited to MSVC's default OpenMP mode, whose header declares
+the runtime function as a DLL import. Other compilers and MSVC's LLVM OpenMP mode
+are unchanged.
 ```
 
 ## Inference in C++

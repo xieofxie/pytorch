@@ -2,6 +2,10 @@
 #ifdef _WIN32
 #include <torch/headeronly/util/win32-headers.h>
 #include <functional> // std::function
+#if defined(_OPENMP) && defined(_MSC_VER) && !defined(__clang__) && \
+    !defined(_OPENMP_LLVM_RUNTIME)
+#include <omp.h>
+#endif
 #ifdef USE_MMAP_SELF
 #include <errno.h>
 #include <fcntl.h>
@@ -1322,6 +1326,22 @@ class AOTInductorModelBase {
         cubin_dir_(std::move(cubin_dir)),
         include_weights(include_weights) {
     parse_device_str(device_str, device_type_, device_idx_);
+
+#if defined(_WIN32) && defined(_OPENMP) && defined(_MSC_VER) && \
+    !defined(__clang__) && !defined(_OPENMP_LLVM_RUNTIME)
+    // MSVC's omp.h declares this function dllimport, so its address is in the
+    // runtime, not an import thunk in the model DLL. LLVM's omp.h does not.
+    // Keep the runtime alive for its workers without retaining the model DLL.
+    HMODULE openmp_runtime;
+    AOTI_RUNTIME_CHECK(
+        GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                GET_MODULE_HANDLE_EX_FLAG_PIN,
+            reinterpret_cast<LPCWSTR>(&omp_get_max_threads),
+            &openmp_runtime),
+        "Failed to retain the OpenMP runtime: " +
+            std::to_string(GetLastError()));
+#endif
 
 #ifdef USE_CUDA
     if (device_idx_ == -1) {
