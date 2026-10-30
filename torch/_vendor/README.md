@@ -58,3 +58,9 @@ Instructions to update the subset of quack being vendored:
     new `quack` reference form
 - Add FlexGEMM deltas as git-format patches to
   `tools/vendoring/quack/flex_gemm_patches` and list them in `series`
+
+The patch series also preserves QuACK's cross-platform cache locking:
+`cache/_filelock.py` uses `fcntl.flock` on Unix and the standard-library
+`ctypes` bindings to `LockFileEx` / `UnlockFileEx` on Windows. Both the JIT
+cache and async compiler use this helper for shared readers, exclusive writers,
+and nonblocking writer probes; no additional runtime dependency is needed.

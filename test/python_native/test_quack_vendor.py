@@ -21,9 +21,9 @@ from torch.testing._internal.common_utils import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VENDOR_SCRIPT = REPO_ROOT / "tools" / "vendoring" / "quack" / "vendor.sh"
 FLEX_GEMM_PATCHES = REPO_ROOT / "tools" / "vendoring" / "quack" / "flex_gemm_patches"
-# Classes the FlexGEMM patch series may add to QuACK: generic protocol hooks
-# only. Concrete FlexGEMM EpiOps live in torch/_inductor/kernel/flex_gemm/quack_ops.
-FLEX_GEMM_PATCH_CLASSES = {"_FragmentEpiModMixin", "ModProblem"}
+# The patch series adds generic protocol hooks and moves FileLock into a
+# shared cache helper. Concrete EpiOps live in flex_gemm/quack_ops.
+FLEX_GEMM_PATCH_CLASSES = {"_FragmentEpiModMixin", "ModProblem", "FileLock"}
 
 
 # Python 3.10's IntEnum formatting breaks QuACK schema inference, not native-AOT.

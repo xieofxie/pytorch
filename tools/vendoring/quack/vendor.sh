@@ -72,6 +72,7 @@ FILES=(
     blockscaled/quantize_utils.py
     blockscaled/utils.py
     cache/__init__.py
+    cache/_filelock.py
     cache/_pool_preload.py
     cache/async_compile.py
     cache/jit.py
