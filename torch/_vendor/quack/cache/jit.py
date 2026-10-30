@@ -16,14 +16,12 @@ bench loop) retries once the ``.o`` lands.
 
 from __future__ import annotations
 
-import fcntl
 import functools
 import hashlib
 import os
 import pickle
 import sys
 import tempfile
-import time
 import warnings
 from collections import namedtuple
 from getpass import getuser
@@ -37,6 +35,7 @@ import tvm_ffi
 # single source of truth; reads happen via attribute access on `_state` so we
 # always see the live value, not a snapshot taken at module import.
 import torch._vendor.quack.cache as _state  # noqa: E402  (intentional partial-import; see __init__.py)
+from torch._vendor.quack.cache._filelock import FileLock
 
 
 EXPORT_FUNC_NAME = "func"
@@ -88,42 +87,6 @@ def _key_to_hash(key: tuple) -> str:
 
 
 # ---------------------------------------------------------------------------
-# File locking
-# ---------------------------------------------------------------------------
-
-
-class FileLock:
-    """Advisory file lock using fcntl.flock with timeout."""
-
-    def __init__(self, lock_path: Path, exclusive: bool, timeout: float = 15):
-        self.lock_path = lock_path
-        self.exclusive = exclusive
-        self.timeout = timeout
-        self._fd: int = -1
-
-    def __enter__(self) -> "FileLock":
-        flags = os.O_WRONLY | os.O_CREAT if self.exclusive else os.O_RDONLY | os.O_CREAT
-        lock_type = fcntl.LOCK_EX if self.exclusive else fcntl.LOCK_SH
-        self._fd = os.open(str(self.lock_path), flags)
-        deadline = time.monotonic() + self.timeout
-        while time.monotonic() < deadline:
-            try:
-                fcntl.flock(self._fd, lock_type | fcntl.LOCK_NB)
-                return self
-            except OSError:
-                time.sleep(0.1)
-        os.close(self._fd)
-        self._fd = -1
-        raise RuntimeError(f"Timed out waiting for lock: {self.lock_path}")
-
-    def __exit__(self, *exc) -> None:
-        if self._fd >= 0:
-            fcntl.flock(self._fd, fcntl.LOCK_UN)
-            os.close(self._fd)
-            self._fd = -1
-
-
-# ---------------------------------------------------------------------------
 # JIT cache decorator
 # ---------------------------------------------------------------------------
 
@@ -136,7 +99,7 @@ def jit_cache(fn):
 
     Concurrency model
     -----------------
-    The disk side uses a per-key ``{sha}.lock`` file (advisory ``flock``):
+    The disk side uses a per-key ``{sha}.lock`` file (shared/exclusive lock):
 
     * **Fast path (warm cache).** If the ``.o`` file already exists, we take a
       shared lock just long enough to ``load_module`` it. Many readers can

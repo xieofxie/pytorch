@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import fcntl
 import importlib
 import os
 import pickle
@@ -48,6 +47,8 @@ import threading
 from concurrent.futures import Future, ProcessPoolExecutor
 from multiprocessing import get_context
 from typing import NamedTuple, Optional
+
+from torch._vendor.quack.cache._filelock import _flock_held_exclusively
 
 
 class PoolPayload(NamedTuple):
@@ -83,28 +84,6 @@ def _collect_pool_payloads(obj, out: list[PoolPayload]) -> None:
     if isinstance(obj, tuple):
         for item in obj:
             _collect_pool_payloads(item, out)
-
-
-def _flock_held_exclusively(lock_path: str) -> bool:
-    """True if some process currently holds the flock exclusively.
-
-    Used to detect "another process is compiling this key right now" so the
-    consumer defers instead of submitting a duplicate compile to its own
-    pool (a duplicate would occupy a pool slot blocked on the same flock).
-    """
-    try:
-        fd = os.open(lock_path, os.O_RDONLY | os.O_CREAT)
-    except OSError:
-        return False
-    try:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
-            fcntl.flock(fd, fcntl.LOCK_UN)
-            return False
-        except OSError:
-            return True
-    finally:
-        os.close(fd)
 
 
 class CompilePending(BaseException):
