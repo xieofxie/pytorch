@@ -354,17 +354,14 @@ macro(torch_cuda_get_nvcc_gencode_flag store_var)
 endmacro()
 
 
-##############################################################################
-# Add standard compile options.
-# Usage:
-#   torch_compile_options(lib_name)
-function(torch_compile_options libname)
-  set_property(TARGET ${libname} PROPERTY CXX_STANDARD 20)
-
+function(torch_msvc_compile_options z7_override)
+  if(TARGET torch::msvc_compile_options)
+    return()
+  endif()
+  add_library(torch::msvc_compile_options INTERFACE IMPORTED)
   # until they can be unified, keep these lists synced with setup.py
   if(MSVC)
-
-    if(MSVC_Z7_OVERRIDE)
+    if(z7_override)
       set(MSVC_DEBINFO_OPTION "/Z7")
     else()
       set(MSVC_DEBINFO_OPTION "/Zi")
@@ -373,17 +370,31 @@ function(torch_compile_options libname)
     # Add /permissive- flag for conformance mode to the compiler.
     # This will force more strict check to the code standard.
     # For MS official doc: https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170#remarks
-    target_compile_options(${libname} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/permissive->)
-    # This option enables a token-based preprocessor that conforms to C99 and C++11 and later standards.
-    # For MS official doc: https://learn.microsoft.com/en-us/cpp/build/reference/zc-preprocessor
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor" PARENT_SCOPE)
-
-    target_compile_options(${libname} PUBLIC
+    target_compile_options(torch::msvc_compile_options INTERFACE
+      $<$<COMPILE_LANGUAGE:CXX>:/permissive->)
+    target_compile_options(torch::msvc_compile_options INTERFACE
       $<$<COMPILE_LANGUAGE:CXX>:
         $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:${MSVC_DEBINFO_OPTION}>
         /EHsc
         /bigobj>
       )
+  endif()
+endfunction()
+
+##############################################################################
+# Add standard compile options.
+# Usage:
+#   torch_compile_options(lib_name)
+function(torch_compile_options libname)
+  set_property(TARGET ${libname} PROPERTY CXX_STANDARD 20)
+
+  if(MSVC)
+    torch_msvc_compile_options("${MSVC_Z7_OVERRIDE}")
+    target_link_libraries(${libname} PUBLIC torch::msvc_compile_options)
+
+    # This option enables a token-based preprocessor that conforms to C99 and C++11 and later standards.
+    # For MS official doc: https://learn.microsoft.com/en-us/cpp/build/reference/zc-preprocessor
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor" PARENT_SCOPE)
   else()
     set(private_compile_options
       -Wall

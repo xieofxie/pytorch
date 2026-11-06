@@ -6,6 +6,10 @@
 # Utils functions.
 include("${CMAKE_CURRENT_LIST_DIR}/public/utils.cmake")
 
+if(@MSVC@)
+  torch_msvc_compile_options("@MSVC_Z7_OVERRIDE@")
+endif()
+
 # Depending on whether Caffe2 uses gflags during compile time or
 # not, invoke gflags.
 if(@USE_GFLAGS@)
