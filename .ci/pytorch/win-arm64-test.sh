@@ -6,18 +6,17 @@ SCRIPT_PARENT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 source "$SCRIPT_PARENT_DIR/common.sh"
 
 run_tests() {
-    echo Running smoke_test.py...
-    python ./.ci/pytorch/smoke_test/smoke_test.py --package torchonly
+    if [[ "${SHARD_NUMBER}" == 1 ]]; then
+        echo Running smoke_test.py...
+        python ./.ci/pytorch/smoke_test/smoke_test.py --package torchonly
+    fi
 
-    echo Running test_autograd.oy, test_nn.py, test_torch.py...
+    echo Running Windows CPU Python tests...
     cd test
 
-    CORE_TEST_LIST=("test_autograd.py" "test_nn.py" "test_modules.py")
-
-    for t in "${CORE_TEST_LIST[@]}"; do
-        echo "Running test: $t"
-        python "$t" --verbose --save-xml --use-pytest -vvvv -rfEsxXP -p no:xdist
-    done
+    # Keep selection aligned with win-test-helpers/test_python_shard.bat.
+    python run_test.py --exclude-distributed-tests --exclude-quantization-tests \
+        --shard "${SHARD_NUMBER}" "${NUM_TEST_SHARDS}" --verbose
 }
 
 run_tests
