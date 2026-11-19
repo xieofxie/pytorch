@@ -1,0 +1,35 @@
+# Windows ARM64 Python 3.12 CI pins, installed after bootstrap_tests.bat.
+build[uv]==1.5.0
+cmake==3.31.6
+dill==0.3.7
+expecttest==0.3.0
+filelock==4.2.1
+fsspec==2026.9.0
+hypothesis==6.56.4
+jinja2==3.1.6
+networkx==2.8.8
+ninja==1.13.0
+# First stable release with a CPython 3.12 Windows ARM64 wheel.
+numpy==2.3.0
+opt-einsum==3.3
+# Older win_arm64 wheels contain an x64 extension; 0.14.0 fixes the build.
+optree==0.14.0
+packaging==24.2
+parameterized==0.8.1
+pip==26.2.2
+protobuf==6.33.5
+pytest==7.3.2
+pytest-flakefinder==1.1.0
+pytest-rerunfailures==14.0
+pytest-subtests==0.13.1
+pytest-xdist==3.3.1
+pyyaml==6.0.3
+scikit-build-core==1.1.2
+# Native Windows ARM64 wheels start at 1.16.2; 1.18 rejects the negative
+# lstsq cutoff used by test_linalg_lstsq.
+scipy==1.16.2
+setuptools==78.1.1
+spin==0.17
+sympy==1.13.3
+typing-extensions==4.15.0
+xdoctest==1.3.0

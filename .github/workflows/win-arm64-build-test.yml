@@ -198,9 +198,7 @@ jobs:
           mkdir "%PYTORCH_FINAL_PACKAGE_DIR%"
           call pytorch/.ci/pytorch/windows/arm64/bootstrap_tests.bat
           if errorlevel 1 exit /b 1
-          python -m pip install pytest==7.3.2 pytest-xdist==3.3.1 pytest-rerunfailures==14.0 pytest-flakefinder==1.1.0 pytest-subtests==0.13.1
-          if errorlevel 1 exit /b 1
-          python -m pip install scipy dill==0.3.7 opt-einsum==3.3 xdoctest==1.3.0 parameterized==0.8.1
+          python -m pip install -r .ci\pytorch\windows\arm64\requirements-ci.txt
           if errorlevel 1 exit /b 1
           set GIT_BASH=C:\Program Files\Git\usr\bin\bash.exe
           "%GIT_BASH%" -c "bash --noprofile --norc .ci/pytorch/win-arm64-test.sh"
