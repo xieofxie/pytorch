@@ -6459,9 +6459,12 @@ def find_library_location(lib_name: str) -> Path:
     if os.path.exists(path):
         return path
     torch_root = Path(__file__).resolve().parents[2]
-    path = torch_root.parent / 'build' / 'lib' / lib_name
-    if os.path.exists(path):
-        return path
+    build_dir = torch_root.parent / 'build'
+    # CMake puts DLLs in the runtime output directory on Windows.
+    for subdir in (('lib', 'bin') if IS_WINDOWS else ('lib',)):
+        path = build_dir / subdir / lib_name
+        if path.is_file():
+            return path
     raise FileNotFoundError(f"Could not find library '{lib_name}' in installed or build paths")
 
 def skip_but_pass_in_sandcastle(reason):
