@@ -72,6 +72,7 @@ _LINKER_SCRIPT = os.path.join(_TORCH_PATH, "_inductor/script.ld")
 _IS_LINUX = sys.platform.startswith("linux")
 _IS_MACOS = sys.platform.startswith("darwin")
 _IS_WINDOWS = sys.platform == "win32"
+_IS_WINDOWS_ARM64 = _IS_WINDOWS and sysconfig.get_platform() == "win-arm64"
 
 MINGW_GXX = "x86_64-w64-mingw32-g++"
 
@@ -3135,7 +3136,7 @@ class CppBuilder:
 def run_asm_build_object(src: str, target: str, cwd: str) -> None:
     def get_asm_compiler() -> str:
         if _IS_WINDOWS:
-            ASM_CC = "ml64"
+            ASM_CC = "armasm64" if _IS_WINDOWS_ARM64 else "ml64"
         else:
             ASM_CC = get_cpp_compiler()
             # Intel compiler is not support to compile asm, switch to gcc.
@@ -3144,7 +3145,9 @@ def run_asm_build_object(src: str, target: str, cwd: str) -> None:
         return ASM_CC
 
     def get_command_line(asm_cc: str, src: str, target: str) -> str:
-        if _IS_WINDOWS:
+        if _IS_WINDOWS_ARM64:
+            cmd = f'{asm_cc} -o "{target}" "{src}"'
+        elif _IS_WINDOWS:
             # Format reference:
             # https://learn.microsoft.com/en-us/cpp/assembler/masm/ml-and-ml64-command-line-reference?view=msvc-170
             cmd = f"{asm_cc} {src} /c /Fo {target}"  # codespell:ignore /Fo

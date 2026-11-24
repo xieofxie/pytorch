@@ -73,6 +73,7 @@ from torch._inductor.codegen.rocm.compile_command import (
 )
 from torch._inductor.compile_worker.utils import in_toplevel_process
 from torch._inductor.cpp_builder import (
+    _IS_WINDOWS_ARM64,
     _LINKER_SCRIPT,
     _set_gpu_runtime_env,
     _TORCH_PATH,
@@ -3056,6 +3057,15 @@ ATTRIBUTE_NO_SANITIZE_ADDRESS\t\n"""
                     Linux: Added '-pedantic' to disable zero-sized arrays in C++ compiler
                     Windows: MSVC naturally rejects zero-sized arrays by default
                 """
+                if _IS_WINDOWS_ARM64:
+                    return """
+        AREA |.data|, DATA, READWRITE, ALIGN=4
+        EXPORT |?_binary_constants_bin_start@@3PAEA|
+        EXPORT |?_binary_constants_bin_end@@3PAEA|
+|?_binary_constants_bin_start@@3PAEA|
+|?_binary_constants_bin_end@@3PAEA|
+        END
+""", "asm"
                 if _IS_WINDOWS:
                     # Windows ml64 is max support align to 16, but it is no effect to zero size data.
                     asm_code = """
